@@ -79,7 +79,7 @@ Timer.prototype.OnUpdate = function(msg)
 		if (this.timers.get(id)[3] <= this.time)
 			run.push(id);
 	}
-
+	
 	for (let i = 0; i < run.length; ++i)
 	{
 		let id = run[i];
@@ -89,18 +89,17 @@ Timer.prototype.OnUpdate = function(msg)
 		if (!timer)
 			continue;
 
-		// The entity was probably destroyed; clean up the timer
 		let cmpTimer = Engine.QueryInterface(timer[0], timer[1]);
 		if (!cmpTimer)
 		{
+			// The entity was probably destroyed; clean up the timer
 			this.timers.delete(id);
 			continue;
 		}
 
 		try
 		{
-			let lateness = this.time - timer[3];
-			cmpTimer[timer[2]](timer[5], lateness);
+			cmpTimer[timer[2]](timer[5], this.time - timer[3]);
 		}
 		catch (e)
 		{
