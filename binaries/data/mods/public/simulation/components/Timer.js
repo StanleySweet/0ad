@@ -49,7 +49,7 @@ Timer.prototype.SetTimeout = function(ent, iid, funcname, time, data)
 Timer.prototype.SetInterval = function(ent, iid, funcname, time, repeattime, data)
 {
 	if (typeof repeattime != "number" || !(repeattime > 0))
-		error("Invalid repeattime to SetInterval of "+funcname);
+		error("Invalid repeattime to SetInterval of " + funcname);
 	let id = ++this.id;
 	this.timers.set(id, [ent, iid, funcname, this.time + time, repeattime, data]);
 	return id;
@@ -63,7 +63,6 @@ Timer.prototype.CancelTimer = function(id)
 	this.timers.delete(id);
 };
 
-
 Timer.prototype.OnUpdate = function(msg)
 {
 	this.turnLength = Math.round(msg.turnLength * 1000);
@@ -73,13 +72,13 @@ Timer.prototype.OnUpdate = function(msg)
 	// (We do this in two stages to avoid deleting from the timer list while
 	// we're in the middle of iterating through it)
 	let run = [];
-	
+
 	for (let id of this.timers.keys())
 	{
 		if (this.timers.get(id)[3] <= this.time)
 			run.push(id);
 	}
-	
+
 	for (let i = 0; i < run.length; ++i)
 	{
 		let id = run[i];
@@ -93,7 +92,7 @@ Timer.prototype.OnUpdate = function(msg)
 		if (!cmpTimer)
 		{
 			// The entity was probably destroyed; clean up the timer
-			this.timers.delete(id);
+			this.CancelTimer(id);
 			continue;
 		}
 
@@ -105,21 +104,23 @@ Timer.prototype.OnUpdate = function(msg)
 		{
 			// Indent the stack trace
 			let stack = e.stack.trimRight().replace(/^/mg, '  ');
-			error("Error in timer on entity "+timer[0]+", IID "+timer[1]+", function "+timer[2]+": "+e+"\n"+stack+"\n");
+			error("Error in timer on entity " + timer[0] + ", IID " + timer[1] + ", function " + timer[2] + ": " + e + "\n" + stack + "\n");
 		}
 
-		// Non-repeating time - delete it
-		if (!timer[4])
+		if (timer[4])
 		{
-			this.timers.delete(id);
-			continue;
+			// Handle repeating timers
+			// Add the repeat time to the execution time
+			timer[3] += timer[4];
+			// Add it to the list to get re-executed if it's soon enough
+			if (timer[3] <= this.time)
+				run.push(id);
 		}
-		// Handle repeating timers
-		// Add the repeat time to the execution time
-		timer[3] += timer[4];
-		// Add it to the list to get re-executed if it's soon enough
-		if (timer[3] <= this.time)
-			run.push(id);
+		else
+		{
+			// Non-repeating time - delete it
+			this.CancelTimer(id);
+		}
 	}
 };
 

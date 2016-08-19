@@ -3,9 +3,9 @@ Engine.LoadComponentScript("Timer.js");
 
 Engine.RegisterInterface("Test");
 
-var cmpTimer = ConstructComponent(SYSTEM_ENTITY, "Timer");
+let cmpTimer = ConstructComponent(SYSTEM_ENTITY, "Timer");
 
-var fired = [];
+let fired = [];
 
 AddMock(10, IID_Test, {
 	Callback: function(data, lateness) {
@@ -13,7 +13,7 @@ AddMock(10, IID_Test, {
 	}
 });
 
-var cancelId;
+let cancelId;
 AddMock(20, IID_Test, {
 	Callback: function(data, lateness) {
 		fired.push([data, lateness]);
@@ -44,16 +44,16 @@ TS_ASSERT_UNEVAL_EQUALS(fired, [["a",0], ["b",300]]);
 
 fired = [];
 
-var c = cmpTimer.SetTimeout(10, IID_Test, "Callback", 1000, "c");
-var d = cmpTimer.SetTimeout(10, IID_Test, "Callback", 1000, "d");
-var e = cmpTimer.SetTimeout(10, IID_Test, "Callback", 1000, "e");
+let c = cmpTimer.SetTimeout(10, IID_Test, "Callback", 1000, "c");
+let d = cmpTimer.SetTimeout(10, IID_Test, "Callback", 1000, "d");
+let e = cmpTimer.SetTimeout(10, IID_Test, "Callback", 1000, "e");
 cmpTimer.CancelTimer(d);
 cmpTimer.OnUpdate({ "turnLength": 1.0 });
 TS_ASSERT_UNEVAL_EQUALS(fired, [["c",0], ["e",0]]);
 
 fired = [];
 
-var r = cmpTimer.SetInterval(10, IID_Test, "Callback", 500, 1000, "r");
+let r = cmpTimer.SetInterval(10, IID_Test, "Callback", 500, 1000, "r");
 
 cmpTimer.OnUpdate({ "turnLength": 0.5 });
 TS_ASSERT_UNEVAL_EQUALS(fired, [["r",0]]);
