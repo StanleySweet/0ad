@@ -32,7 +32,7 @@ Timer.prototype.GetLatestTurnLength = function()
  */
 Timer.prototype.SetTimeout = function(ent, iid, funcname, time, data)
 {
-	var id = ++this.id;
+	let id = ++this.id;
 	this.timers.set(id, [ent, iid, funcname, this.time + time, 0, data]);
 	return id;
 };
@@ -50,7 +50,7 @@ Timer.prototype.SetInterval = function(ent, iid, funcname, time, repeattime, dat
 {
 	if (typeof repeattime != "number" || !(repeattime > 0))
 		error("Invalid repeattime to SetInterval of "+funcname);
-	var id = ++this.id;
+	let id = ++this.id;
 	this.timers.set(id, [ent, iid, funcname, this.time + time, repeattime, data]);
 	return id;
 };
@@ -66,57 +66,61 @@ Timer.prototype.CancelTimer = function(id)
 
 Timer.prototype.OnUpdate = function(msg)
 {
-	var dt = Math.round(msg.turnLength * 1000);
-	this.time += dt;
-	this.turnLength = dt;
+	this.turnLength = Math.round(msg.turnLength * 1000);
+	this.time += this.turnLength;
 
 	// Collect the timers that need to run
 	// (We do this in two stages to avoid deleting from the timer list while
 	// we're in the middle of iterating through it)
-	var run = [];
+	let run = [];
+	
 	for (let id of this.timers.keys())
 	{
 		if (this.timers.get(id)[3] <= this.time)
 			run.push(id);
 	}
-	for (var i = 0; i < run.length; ++i)
+
+	for (let i = 0; i < run.length; ++i)
 	{
-		var id = run[i];
+		let id = run[i];
+		let timer = this.timers.get(id);
 
-		var t = this.timers.get(id);
-		if (!t)
-			continue; // an earlier timer might have cancelled this one, so skip it
+		// An earlier timer might have cancelled this one, so skip it
+		if (!timer)
+			continue;
 
-		var cmp = Engine.QueryInterface(t[0], t[1]);
-		if (!cmp)
+		// The entity was probably destroyed; clean up the timer
+		let cmpTimer = Engine.QueryInterface(timer[0], timer[1]);
+		if (!cmpTimer)
 		{
-			// The entity was probably destroyed; clean up the timer
 			this.timers.delete(id);
 			continue;
 		}
 
-		try {
-			var lateness = this.time - t[3];
-			cmp[t[2]](t[5], lateness);
-		} catch (e) {
-			var stack = e.stack.trimRight().replace(/^/mg, '  '); // indent the stack trace
-			error("Error in timer on entity "+t[0]+", IID "+t[1]+", function "+t[2]+": "+e+"\n"+stack+"\n");
+		try
+		{
+			let lateness = this.time - timer[3];
+			cmpTimer[timer[2]](timer[5], lateness);
+		}
+		catch (e)
+		{
+			// Indent the stack trace
+			let stack = e.stack.trimRight().replace(/^/mg, '  ');
+			error("Error in timer on entity "+timer[0]+", IID "+timer[1]+", function "+timer[2]+": "+e+"\n"+stack+"\n");
 		}
 
-		// Handle repeating timers
-		if (t[4])
+		// Non-repeating time - delete it
+		if (!timer[4])
 		{
-			// Add the repeat time to the execution time
-			t[3] += t[4];
-			// Add it to the list to get re-executed if it's soon enough
-			if (t[3] <= this.time)
-				run.push(id);
-		}
-		else
-		{
-			// Non-repeating time - delete it
 			this.timers.delete(id);
+			continue;
 		}
+		// Handle repeating timers
+		// Add the repeat time to the execution time
+		timer[3] += timer[4];
+		// Add it to the list to get re-executed if it's soon enough
+		if (timer[3] <= this.time)
+			run.push(id);
 	}
 };
 
